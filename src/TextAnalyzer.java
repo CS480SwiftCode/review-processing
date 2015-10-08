@@ -7,7 +7,7 @@ import java.util.Scanner;
 
 public class TextAnalyzer
 {
-   public static ArrayList<String> analyze(ArrayList<String> reviews) throws FileNotFoundException
+   public static boolean[][] analyze(ArrayList<String> reviews) throws FileNotFoundException
    {
       
       reviews = removeStopwords(reviews);
@@ -21,13 +21,20 @@ public class TextAnalyzer
          {
             if (sn.contains("happy hour"))
             {
-               String time = findTime(sn);
-               if (!time.equals(""))
-                  data.add(time);
+               String text = getRelevantText(sn);
+               if (!text.equals(""))
+                  data.add(text);
             }
          }
       }
-      return data;
+      
+      System.out.println(data);
+      
+      // take text and return a 7x24 (or less) array of booleans tells when hh are on
+      // could probably be from 2pm - 2am
+      boolean[][] hhTimes = classifyText(data);
+      
+      return hhTimes;
    }
    
    
@@ -59,7 +66,7 @@ public class TextAnalyzer
    }
    
    
-   public static String findTime(String sentence)
+   public static String getRelevantText(String sentence)
    {
       
       if (sentence.matches("(?s).*\\d.*"))
@@ -67,9 +74,14 @@ public class TextAnalyzer
          int idx = sentence.indexOf("happy hour");
          sentence = sentence.substring(idx+10,sentence.length());
          
-         
          return sentence;
       }
       return "";
+   }
+   
+   
+   private static boolean[][] classifyText(ArrayList<String> data)
+   {
+      return null;
    }
 }

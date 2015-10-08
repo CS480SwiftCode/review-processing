@@ -10,13 +10,21 @@ public class WebScraper
    public static void main(String[] args) throws IOException
    {
       // url to yelp page or at least info from yelp on the project
-      String url = "insert url here";
+      String url = "http://www.yelp.com/biz/dono-sushi-cafe-chino";
       
       ArrayList<String> reviews = retrieveReviews(url);
       
-      ArrayList<String> data = TextAnalyzer.analyze(reviews);
+      boolean[][] times = TextAnalyzer.analyze(reviews);
       
-      System.out.println(data);
+      for (boolean[] ba : times)
+      {
+         for (boolean b : ba)
+         {
+            System.out.print(b + " ");
+         }
+         System.out.println();
+      }
+      
    }
    
    
