@@ -10,7 +10,7 @@ public class WebScraper
    public static void main(String[] args) throws IOException
    {
       // url to yelp page or at least info from yelp on the project
-      String url = "url goes here";
+      String url = "url here";
       
       ArrayList<String> reviews = retrieveReviews(url);
       

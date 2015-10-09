@@ -82,6 +82,12 @@ public class TextAnalyzer
    
    private static boolean[][] classifyText(ArrayList<String> data)
    {
-      return null;
+      boolean[][] hhTimes = new boolean[12][7];
+      for (String s : data)
+      {
+         if (!s.matches("(?s).*\\d.*"))
+            continue;
+      }
+      return hhTimes;
    }
 }
