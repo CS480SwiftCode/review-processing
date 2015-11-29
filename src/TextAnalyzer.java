@@ -1,152 +1,202 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-
+/**
+ * Created by ZenasMeng on 11/19/15.
+ */
 public class TextAnalyzer
 {
-   public static boolean[][] analyze(ArrayList<String> reviews) throws FileNotFoundException
+   public static String analyze(ArrayList<String> reviews)
    {
-      
-      reviews = removeStopwords(reviews);
-      
-      ArrayList<String> data = new ArrayList<>();
-      for (String s : reviews)
+//        String days = null;
+      ArrayList<String> days = new ArrayList<>();
+      ArrayList<String> times = new ArrayList<>();
+
+      for (String r : reviews)
       {
-         String[] sentences = s.split("[.!?]");
-         
-         for (String sn : sentences)
+         String[] sentences = r.split("[.!?]");
+         for (String s : sentences)
          {
-            if (sn.contains("happy hour"))
+            if (s.contains("happy hour"))
             {
-               String text = getRelevantText(sn);
-               if (!text.equals(""))
-                  data.add(text);
+               // Gets all possible times and puts in ArrayList.
+               times.add(checkNumbers(s));
+               days.add(checkDays(s));
             }
          }
       }
-      
-      System.out.println(data);
-      
-      // take text and return a 7x24 (or less) array of booleans tells when hh are on
-      // could probably be from 2pm - 2am
-      boolean[][] hhTimes = classifyText(data);
-      
-      return hhTimes;
+      return determineMostFrequent(days) + ", " + determineMostFrequent(times);
+//      System.out.println(determineMostFrequent(days));
+//      System.out.println(determineMostFrequent(times) + "\n");
    }
-   
-   
-   private static ArrayList<String> removeStopwords(ArrayList<String> reviews) throws FileNotFoundException
+
+   // In an ArrayList of Strings, returns most frequent String.
+   private static String determineMostFrequent(ArrayList<String> originalList)
    {
-      // should probably make an object which does this to keep words in memory
-      Scanner file = new Scanner(new File("stopwords/stopwords-basic"));
-      HashSet<String> wordlist = new HashSet<>();
-      while (file.hasNext())
+      String mostFrequent = "Undetermined.";
+
+      // Gets all unique Strings.
+      ArrayList<String> duplicates = new ArrayList<>();
+      for (String s : originalList)
       {
-         wordlist.add(file.nextLine());
-      }
-      file.close();
-      
-      for (int i = 0; i < reviews.size(); i++)
-      {
-         String[] words = reviews.get(i).split(" ");
-         String newSentence = "";
-         for (String s : words)
-         {
-            if (!wordlist.contains(s))
-               newSentence += s + " ";
-         }
-         
-         reviews.set(i, newSentence);
-      }
-      
-      return reviews;
-   }
-   
-   
-   private static String getRelevantText(String sentence)
-   {
-      
-      if (sentence.matches("(?s).*\\d.*"))
-      {
-         int idx = sentence.indexOf("happy hour");
-         sentence = sentence.substring(idx+10,sentence.length());
-         
-         return sentence;
-      }
-      return "";
-   }
-   
-   
-   private static boolean[][] classifyText(ArrayList<String> data) throws FileNotFoundException
-   {
-      Scanner file = new Scanner(new File("abbreviations/abbreviations-weekdays"));
-      HashMap<String,Integer> wordlist = new HashMap<>();
-      while (file.hasNext())
-      {
-         String[] keyValue = file.nextLine().split(",");
-         wordlist.put(keyValue[0],Integer.parseInt(keyValue[1]));
-      }
-      file.close();
-      
-      boolean[][] hhTimes = new boolean[13][7];
-      for (String s : data)
-      {
-         if (!s.matches("(?s).*\\d.*"))
+         if (s.equals(""))
             continue;
-         
-         // the following algorithm checks for times that fall after the dates
-         String[] words = s.split("[ -]");
-         for (int i = 0; i < words.length; i++)
+         if (duplicates.contains(s))
+            continue;
+         else
+            duplicates.add(s);
+      }
+
+      // Checks frequency of all Strings and sets mostFrequent to highest frequency.
+      // Returns undetermined on ambiguity.
+      int highest = 0;
+      boolean ambiguity = false;
+      for (String s : duplicates)
+      {
+         if (Collections.frequency(originalList, s) == highest)
+            ambiguity = true;
+
+         if (Collections.frequency(originalList, s) > highest)
          {
-            int startDay = 13, endDay = 13, endTime = 13, startTime = 13;
-            
-            
-            if (wordlist.containsKey(words[i]))
-            {
-               startDay = wordlist.get(words[i]);
-               endDay = startDay;
-               if ((i+1) < words.length && wordlist.containsKey(words[i+1]))
-               {
-                  endDay = wordlist.get(words[i+1]);
-               }
-               for (int j = i; j < words.length; j++)
-               {
-                  startTime = 13;
-                  endTime = 13;
-                  if (words[j].matches("[0-9]"))
-                  {
-                     startTime = Integer.parseInt(words[j]) - 2;
-                     if (words[j+1].matches("[0-9]"))
-                     {
-                        endTime = Integer.parseInt(words[j+1]) - 2;
-                        break;
-                     }
-                     else
-                     {
-                        endTime = 12;
-                        break;
-                     }
-                  }
-               }
-            }
-            
-            for (int j = startTime; j < 12; j++)
-            {
-               for (int k = startDay; k < 7; k++)
-               {
-                  if (j <= endTime && k <= endDay)
-                  {
-                     hhTimes[j][k] = true;
-                  }
-               }
-            }
-            
+            highest = Collections.frequency(originalList, s);
+            mostFrequent = s;
+            ambiguity = false;
          }
       }
-      return hhTimes;
+
+      if (ambiguity == true)
+         mostFrequent = "Undetermined.";
+      return mostFrequent;
+   }
+   private static String checkDays(String sentence)
+   {
+      String days = "";
+      String regex =
+              "(" +
+                      "(" +
+                      "(Monday|Mon)|" +
+                      "(Tuesday|Tue|Tues|Tu)|" +
+                      "(Wednesday|Wed)|" +
+                      "(Thursday|Thurs|Thur|Thu)|" +
+                      "(Friday|Fri)|" +
+                      "(Saturday|Sat)|" +
+                      "(Sunday|Sun)|" +
+                      "(M|T|W|T|F|S|S)" +
+                      ")" +
+                      "\\s?" +
+                      "(through|-|to)" +
+                      "\\s?" +
+                      "(" +
+                      "(Monday|Mon)|" +
+                      "(Tuesday|Tue|Tues)|" +
+                      "(Wednesday|Wed)|" +
+                      "(Thursday|Thurs|Thur|Thu)|" +
+                      "(Friday|Fri)|" +
+                      "(Saturday|Sat)|" +
+                      "(Sunday|Sun|Su)|" +
+                      "(M|T|W|T|F|S|S)" +
+                      ")" +
+//                      ")|" +
+//                      "(" +
+//                      "(All\\s?day\\s?)" +
+//                      "(" +
+//                      "(Monday|Mon)|" +
+//                      "(Tuesday|Tue|Tues)|" +
+//                      "(Wednesday|Wed)|" +
+//                      "(Thursday|Thurs|Thur|Thu)|" +
+//                      "(Friday|Fri)|" +
+//                      "(Saturday|Sat)|" +
+//                      "(Sunday|Sun|Su)" +
+//                      ")" +
+                      ")|" +
+                      "(Every\\s?day|Daily|Weekend)";
+      Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      Matcher matcher = pattern.matcher(sentence);
+
+      if (matcher.find())
+      {
+         // Convert to common format.
+         String temp = sentence.substring(matcher.start(), matcher.end()).replace(" ", "").toLowerCase();
+//         System.out.println(temp);
+
+         int index = temp.indexOf("through") * temp.indexOf("-") * temp.indexOf("to");
+
+         // Every day or weekends.
+         if (index == -1)
+         {
+            if (temp.charAt(0) == 'e' || temp.charAt(0) == 'd')
+               days += "Mon - Sun";
+            else
+               days += "Sat - Sun";
+//            System.out.println("Days: " + days);
+            return days;
+         }
+
+         String first = temp.substring(0, index); // Contains first day.
+         String last = temp.substring(index + 1, temp.length()); // Contains last day.
+
+         // If single letter and S or T. Ambiguous.
+         if (first.length() < 2 && (first.charAt(0) == 's' || first.charAt(0) == 't'))
+            return days;
+
+         days += findCorrectDay(first) + " - " + findCorrectDay(last);
+      }
+//      if (!days.equals(""))
+//         System.out.println("Days: " + days);
+      return days;
+   }
+
+   private static String findCorrectDay(String day)
+   {
+      if (day.charAt(0) == 'm')
+         return "Mon";
+      if (day.contains("tu"))
+         return "Tue";
+      if (day.charAt(0) == 'w')
+         return "Wed";
+      if (day.contains("th"))
+         return "Thu";
+      if (day.charAt(0) == 'f')
+         return "Fri";
+      if (day.contains("sa"))
+         return "Sat";
+      return "Sun";
+   }
+
+   private static String checkNumbers(String sentence)
+   {
+      String numbers = "";
+      String regex = "(\\d+:?\\d*)(\\s?-\\s?|\\s?through\\s?|\\s?to\\s?)(\\d+:?\\d*)";
+      Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
+      Matcher matcher = pattern.matcher(sentence);
+
+      if (matcher.find())
+      {
+         // Convert to common format.
+         String temp = sentence.substring(matcher.start(), matcher.end());
+         boolean hyphenCheck = false;
+
+         for (char c : temp.toCharArray())
+         {
+            if (Character.isDigit(c))
+               numbers += c;
+            if (c == '-' && hyphenCheck == false)
+            {
+               numbers += '-';
+               hyphenCheck = true;
+            }
+            if (!Character.isDigit(c) && c != '-' && hyphenCheck == false)
+            {
+               numbers += '-';
+               hyphenCheck = true;
+            }
+         }
+      }
+      return numbers;
    }
 }
