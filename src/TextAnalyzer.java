@@ -1,8 +1,5 @@
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,8 +28,6 @@ public class TextAnalyzer
          }
       }
       return determineMostFrequent(days) + ", " + determineMostFrequent(times);
-//      System.out.println(determineMostFrequent(days));
-//      System.out.println(determineMostFrequent(times) + "\n");
    }
 
    // In an ArrayList of Strings, returns most frequent String.
@@ -114,7 +109,7 @@ public class TextAnalyzer
 //                      "(Sunday|Sun|Su)" +
 //                      ")" +
                       ")|" +
-                      "(Every\\s?day|Daily|Weekend)";
+                      "(Every\\s?day|Daily|Weekend|Weekday)";
       Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
       Matcher matcher = pattern.matcher(sentence);
 
@@ -126,13 +121,15 @@ public class TextAnalyzer
 
          int index = temp.indexOf("through") * temp.indexOf("-") * temp.indexOf("to");
 
-         // Every day or weekends.
+         // Every day, weekdays, or weekends.
          if (index == -1)
          {
             if (temp.charAt(0) == 'e' || temp.charAt(0) == 'd')
                days += "Mon - Sun";
-            else
+            else if (temp.matches("weekend"))
                days += "Sat - Sun";
+            else
+               days += "Mon - Fri";
 //            System.out.println("Days: " + days);
             return days;
          }
@@ -171,7 +168,7 @@ public class TextAnalyzer
    private static String checkNumbers(String sentence)
    {
       String numbers = "";
-      String regex = "(\\d+:?\\d*)(\\s?-\\s?|\\s?through\\s?|\\s?to\\s?)(\\d+:?\\d*)";
+      String regex = "(\\d+:?\\d*((AM)?|(PM)?))(\\s?-\\s?|\\s?through\\s?|\\s?to\\s?)(\\d+:?\\d*((AM)?|(PM)?))";
       Pattern pattern = Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
       Matcher matcher = pattern.matcher(sentence);
 
@@ -187,12 +184,12 @@ public class TextAnalyzer
                numbers += c;
             if (c == '-' && hyphenCheck == false)
             {
-               numbers += '-';
+               numbers += " - ";
                hyphenCheck = true;
             }
             if (!Character.isDigit(c) && c != '-' && hyphenCheck == false)
             {
-               numbers += '-';
+               numbers += " - ";
                hyphenCheck = true;
             }
          }

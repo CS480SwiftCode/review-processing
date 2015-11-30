@@ -25,7 +25,7 @@ public class Yelp {
 			FileWriter writer = new FileWriter(sFileName);
 
 			writer.append(
-					"Name, Address, City, State, ZipCode, CountryCode, URL, Phone, Rating, Latitude, Longitude \n");
+					"Name, Address, City, State, ZipCode, CountryCode, URL, Phone, Rating, Latitude, Longitude, HappyHour \n");
 			for (Business b : businesses) {
 				writer.append(b.getName() + ", ");
 				writer.append(b.getLocationAddress() + ", ");
@@ -37,7 +37,8 @@ public class Yelp {
 				writer.append(b.getPhone() + ", ");
 				writer.append(b.getRating() + ", ");
 				writer.append(b.getLatitude() + ", ");
-				writer.append(b.getLongitude() + "\n");
+				writer.append(b.getLongitude() + ", ");
+				writer.append(b.getHappyHour() + "\n");
 
 			}
 			writer.flush();

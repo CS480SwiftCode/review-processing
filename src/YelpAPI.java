@@ -9,11 +9,15 @@ import org.scribe.model.Token;
 import org.scribe.model.Verb;
 import org.scribe.oauth.OAuthService;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class YelpAPI {
 
@@ -200,32 +204,6 @@ public class YelpAPI {
 
 		return fillArray(businesses, businessJSON);
 	}
-	
-	public String[] returnParam(YelpAPI yelp, String term, String location, int limit, String param)
-	{
-		JSONArray businesses = queryAPI(yelp, term, location, limit);
-		String[] listOfParam = new String[limit];
-
-		for (int i = 0; i < businesses.size(); i++) 
-		{
-			JSONObject obj = (JSONObject) businesses.get(i);
-			listOfParam[i] = (String) obj.get(param);
-		}
-		return listOfParam;
-	}	
-	
-	public String[] returnParam(YelpAPI yelp, String term, String location, int limit, int radius, String param)
-	{
-		JSONArray businesses = queryAPI(yelp, term, location, limit, radius);
-		String[] listOfParam = new String[limit];
-
-		for (int i = 0; i < businesses.size(); i++) 
-		{
-			JSONObject obj = (JSONObject) businesses.get(i);
-			listOfParam[i] = (String) obj.get(param);
-		}
-		return listOfParam;
-	}
 	public Business[] fillArray(Business[] businesses, JSONArray businessJSON)
 	{
 		for (int i = 0; i < businessJSON.size(); i++) {
@@ -242,7 +220,6 @@ public class YelpAPI {
 			}
 			catch (Exception e)
 			{
-				// e.printStackTrace();
 				// Rare case of no address. Will be set to null.
 				System.out.println("Null address. Skipping.");
 			}
@@ -264,16 +241,46 @@ public class YelpAPI {
 	{
 		Business[] businesses = new Business[limit];
 		JSONArray businessJSON = queryAPI(yelp, lat, longi, limit, radius);
-
-//		return fillArray(businesses, businessJSON);
 		fillArray(businesses, businessJSON);
+
+		File cache = new File("businessCache");
+		if (!cache.exists())
+			cache.createNewFile();
+
+        FileInputStream input = new FileInputStream("businessCache");
 		for (Business q : businesses)
 		{
 			try
 			{
 				String url = q.getUrl();
+				String busName = url.substring(24, url.length());
+
+				// Check cache for current business. Skips if cached.
+                FileChannel channel = input.getChannel();
+                ByteBuffer bbuf = channel.map(FileChannel.MapMode.READ_ONLY, 0, (int) channel.size());
+				CharBuffer cbuf = Charset.forName("8859_1").newDecoder().decode(bbuf);
+				Pattern pattern = Pattern.compile(busName);
+				Matcher matcher = pattern.matcher(cbuf);
+				if (matcher.find())
+					continue;
+				//
+
 				ArrayList<String> reviews = WebScraper.retrieveReviews(url);
-//				System.out.println(q.getName());
+
+				// If can get reviews. Place in cache.
+				if (reviews.size() > 0)
+				{
+					PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(cache, true)));
+					out.println(busName);
+
+					// Write reviews to cache. Can take this out in production.
+					for (String s : reviews)
+						out.println(s);
+					//
+					out.close();
+				}
+				//
+
 				String happyHour = TextAnalyzer.analyze(reviews);
 				q.setHappyHour(happyHour);
 			}
@@ -282,7 +289,6 @@ public class YelpAPI {
 				e.printStackTrace();
 			}
 		}
-
 		return businesses;
 	}
 }
